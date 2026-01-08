@@ -4,9 +4,7 @@ services:
   minio:
     build: .
     container_name: mini_minio
-    ports:
-      - "9005:9000"   # API
-      - "9006:9001"   # Console
+    # Console
     volumes:
       - minio-data:/data
     environment:
