@@ -4,18 +4,25 @@ services:
   minio:
     build: .
     container_name: mini_minio
-    # Console
     volumes:
       - minio-data:/data
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin123
-      MINIO_BUCKET_NAME: anivault
-      MINIO_SERVER_URL: https://storage.getmusterup.com
-      MINIO_BROWSER_REDIRECT_URL: https://console.getmusterup.com
+      # Credentials
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
 
-      # Choose init method: "go" or "sh"
-      MINIO_INIT_METHOD: go
+      # Bucket
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-anivault}
+
+      # Public access
+      MINIO_PUBLIC: ${MINIO_PUBLIC:-true}
+
+      # URLs
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://ap.getmusterup.com}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-https://as.getmusterup.com}
+
+      # Init method (go or sh)
+      MINIO_INIT_METHOD: ${MINIO_INIT_METHOD:-go}
     networks:
       - minio_net
     restart: unless-stopped
