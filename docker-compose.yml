@@ -82,9 +82,10 @@ services:
     image: filebrowser/filebrowser:latest
     container_name: minio_explorer
     profiles: ["explorer"]
+    user: "0:0"
     volumes:
       - minio-data:/srv # Mount the SAME volume as MinIO to see files
-      - ./filebrowser.db:/database.db
+      - ./minio_browser.db:/database.db
     environment:
       FB_DATABASE: "/database.db"
       FB_ROOT: "/srv"
