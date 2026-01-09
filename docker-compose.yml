@@ -1,6 +1,9 @@
-version: "3.8"
+version: "3.9"
 
 services:
+  # ==========================================
+  # 1. CORE SERVICE: MinIO (Always Enabled)
+  # ==========================================
   minio:
     build: .
     container_name: mini_minio
@@ -12,23 +15,108 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
 
       # Buckets Config
-      # Format: "name:mode,name2:mode2"
-      # Modes: public, private, ip=1.2.3.4
       MINIO_BUCKETS: ${MINIO_BUCKETS:-anivault:public}
 
       # URLs
       # ⚠️ MUST include scheme (http:// or https://)
-      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://ap.getmusterup.com}
-      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-https://as.getmusterup.com}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-http://localhost:9000}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-http://localhost:9001}
 
       # Init method (go or sh)
       MINIO_INIT_METHOD: ${MINIO_INIT_METHOD:-go}
+      
+      # Auto-Generate Client Code
+      GENERATE_CLIENT: ${GENERATE_CLIENT:-false}
+      CLIENT_LANG: ${CLIENT_LANG:-node}
+    command: server /data --console-address ":9001"
+    networks:
+      - minio_net
+    restart: unless-stopped
+    # If using Traefik, expose ports differently or use internal network
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${CONSOLE_PORT:-9001}:9001"
+    labels:
+      - "traefik.enable=true"
+      # API Router
+      - "traefik.http.routers.minio.rule=Host(`minio.yourdomain.com`)" 
+      - "traefik.http.routers.minio.entrypoints=websecure"
+      - "traefik.http.routers.minio.tls.certresolver=myresolver"
+      - "traefik.http.services.minio.loadbalancer.server.port=9000"
+      # Console Router
+      - "traefik.http.routers.console.rule=Host(`console.yourdomain.com`)"
+      - "traefik.http.routers.console.entrypoints=websecure"
+      - "traefik.http.routers.console.tls.certresolver=myresolver"
+      - "traefik.http.services.console.loadbalancer.server.port=9001"
+
+  # ==========================================
+  # 2. SSL SERVICE: Traefik (Profile: ssl)
+  # ==========================================
+  traefik:
+    image: traefik:v2.10
+    container_name: minio_traefik
+    profiles: ["ssl"]
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory" # Uncomment for testing
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL:-admin@example.com}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik-certificates:/letsencrypt"
+    networks:
+      - minio_net
+    restart: unless-stopped
+
+  # ==========================================
+  # 3. EXPLORER SERVICE: File Browser (Profile: explorer)
+  # ==========================================
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: minio_explorer
+    profiles: ["explorer"]
+    volumes:
+      - minio-data:/srv # Mount the SAME volume as MinIO to see files
+      - ./filebrowser.db:/database.db
+    environment:
+      FB_DATABASE: "/database.db"
+      FB_ROOT: "/srv"
+    ports:
+      - "8080:80"
+    networks:
+      - minio_net
+    restart: unless-stopped
+
+  # ==========================================
+  # 4. BACKUP SERVICE: Rclone (Profile: backup)
+  # ==========================================
+  backup:
+    image: rclone/rclone:latest
+    container_name: minio_backup
+    profiles: ["backup"]
+    env_file:
+      - .env
+    volumes:
+      - minio-data:/data
+      - ./rclone.conf:/config/rclone/rclone.conf
+    entrypoint: "/bin/sh"
+    # Syncs local /data to the 'remote' target defined in .env
+    command: -c "echo '⏳ Starting Backup Sync...'; rclone sync /data remote:bucket; echo '✅ Backup Complete'; sleep 86400"
     networks:
       - minio_net
     restart: unless-stopped
 
 volumes:
   minio-data:
+  traefik-certificates:
 
 networks:
   minio_net:

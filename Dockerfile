@@ -2,11 +2,13 @@ FROM golang:1.24-alpine as builder
 
 WORKDIR /app
 
-# Copy Go script
+# Copy Go files
 COPY init/setup.go .
+COPY init/go.mod .
+COPY init/go.sum .
 
 # Build the Go binary
-RUN go mod init setup && go mod tidy && go build -o /setup-bucket setup.go
+RUN go build -o /setup-bucket setup.go
 
 # Final image: MinIO + setup scripts
 FROM minio/minio:latest
