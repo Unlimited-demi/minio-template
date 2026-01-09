@@ -33,12 +33,11 @@ services:
       - minio_net
     restart: unless-stopped
     # If using Traefik, expose ports differently or use internal network
-    ports:
-      - "${MINIO_PORT:-9000}:9000"
-      - "${CONSOLE_PORT:-9001}:9001"
+    # ports:
+    #   - "9000:9000"
+    #   - "9001:9001"
     labels:
       - "traefik.enable=true"
-      # API Router
       - "traefik.http.routers.minio.rule=Host(`minio.yourdomain.com`)" 
       - "traefik.http.routers.minio.entrypoints=websecure"
       - "traefik.http.routers.minio.tls.certresolver=myresolver"
@@ -89,8 +88,8 @@ services:
     environment:
       FB_DATABASE: "/database.db"
       FB_ROOT: "/srv"
-    # ports:
-    #   - "7070:80"
+    ports:
+      - "7070:80"
     networks:
       - minio_net
     restart: unless-stopped
