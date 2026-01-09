@@ -18,6 +18,7 @@ services:
       MINIO_PUBLIC: ${MINIO_PUBLIC:-true}
 
       # URLs
+      # ⚠️ MUST include scheme (http:// or https://)
       MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://ap.getmusterup.com}
       MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-https://as.getmusterup.com}
 

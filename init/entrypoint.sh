@@ -17,7 +17,7 @@ case "$MINIO_INIT_METHOD" in
     echo "▶ Using Go script to configure bucket"
     if [ -n "$MINIO_BUCKET_NAME" ]; then
       /setup-bucket \
-        -endpoint "http://127.0.0.1:9000" \
+        -endpoint "127.0.0.1:9000" \
         -accessKey "$MINIO_ROOT_USER" \
         -secretKey "$MINIO_ROOT_PASSWORD" \
         -bucket "$MINIO_BUCKET_NAME"
