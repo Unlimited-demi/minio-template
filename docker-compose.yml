@@ -89,8 +89,7 @@ services:
     environment:
       FB_DATABASE: "/config/database.db"
       FB_ROOT: "/srv"
-    ports:
-      - "7070:80"
+  
     networks:
       - minio_net
     restart: unless-stopped
