@@ -20,7 +20,10 @@ case "$MINIO_INIT_METHOD" in
         -endpoint "127.0.0.1:9000" \
         -accessKey "$MINIO_ROOT_USER" \
         -secretKey "$MINIO_ROOT_PASSWORD" \
-        -buckets "$MINIO_BUCKETS"
+        -buckets "$MINIO_BUCKETS" \
+        -gen-client="${GENERATE_CLIENT:-false}" \
+        -client-lang="${CLIENT_LANG:-node}" \
+        -public-url="${MINIO_SERVER_URL:-http://localhost:9000}"
     fi
     ;;
   *)
