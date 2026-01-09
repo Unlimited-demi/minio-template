@@ -106,6 +106,22 @@ class StorageService {
       secretKey: '$MINIO_ROOT_PASSWORD'
     });
   }
+
+  // 1. Get Presigned Upload URL (Frontend -> MinIO)
+  async getUploadUrl(bucket, filename) {
+    return await this.client.presignedPutObject(bucket, filename, 3600);
+  }
+
+  // 2. Upload File (Backend -> MinIO)
+  async uploadFile(bucket, filename, fileStream, metaData = {}) {
+    return await this.client.putObject(bucket, filename, fileStream, null, metaData);
+  }
+
+  // 3. Get Download URL (Public or Presigned)
+  async getFileUrl(bucket, filename) {
+    // Basic logic: return signed URL for safety
+    return await this.client.presignedGetObject(bucket, filename, 3600);
+  }
 }
 module.exports = new StorageService();"
     fi
