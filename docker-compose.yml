@@ -90,7 +90,7 @@ services:
       FB_DATABASE: "/database.db"
       FB_ROOT: "/srv"
     ports:
-      - "8080:80"
+      - "7070:80"
     networks:
       - minio_net
     restart: unless-stopped

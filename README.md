@@ -94,7 +94,7 @@ Enable optional features by setting the `COMPOSE_PROFILES` environment variable.
 | Profile | Service | Description |
 | :--- | :--- | :--- |
 | `ssl` | **Traefik** | Automatic HTTPS (Let's Encrypt). Requires Domain + DNS. |
-| `explorer` | **FileBrowser** | Web UI manager at port 8080. |
+| `explorer` | **FileBrowser** | Web UI manager at port 7070. |
 | `backup` | **Rclone** | Syncs data to remote cloud storage. |
 
 **How to Enable:**
