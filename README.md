@@ -31,9 +31,27 @@ MINIO_SERVER_URL=https://minio.yourdomain.com
 MINIO_BROWSER_REDIRECT_URL=https://console.yourdomain.com
 ```
 
-### 2. Bucket Scenarios
+### 2. Bucket Strategy (New!)
+Define your buckets and their security mode in `MINIO_BUCKETS`.
+Format: `bucket-name:mode` separated by commas.
 
-Use the `MINIO_BUCKETS` variable to define your buckets. Format: `name:mode`.
+| Mode | Syntax | Description |
+| :--- | :--- | :--- |
+| **Public** | `public` | Readable by anyone on the internet. |
+| **Private** | `private` | No public access. Keys/Presigned URLs only. |
+| **IP Restricted** | `ip=1.2.3.4` | Only allowed from specific IPs. |
+| **Multi-IP** | `ip=1.2.3.4;5.6.7.8` | **Separate multiple IPs with a semicolon (;)**. |
+
+**Example:**
+```ini
+# A complicated setup:
+# 1. public-assets: Public
+# 2. company-files: Private
+# 3. office-share: Allowed from 2 different office IPs
+MINIO_BUCKETS=public-assets:public,company-files:private,office-share:ip=203.0.113.5;198.51.100.2
+```
+
+👉 **See [`env-examples/`](env-examples/) for ready-to-copy `.env` files.**
 
 #### Scenario A: Simple Public Storage (Website Assets)
 **Goal**: Store images/videos that anyone can view via a URL.
