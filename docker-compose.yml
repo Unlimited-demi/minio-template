@@ -11,11 +11,10 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
 
-      # Bucket
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-anivault}
-
-      # Public access
-      MINIO_PUBLIC: ${MINIO_PUBLIC:-true}
+      # Buckets Config
+      # Format: "name:mode,name2:mode2"
+      # Modes: public, private, ip=1.2.3.4
+      MINIO_BUCKETS: ${MINIO_BUCKETS:-anivault:public}
 
       # URLs
       # ⚠️ MUST include scheme (http:// or https://)
