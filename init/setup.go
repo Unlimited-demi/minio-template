@@ -171,34 +171,81 @@ func generateAndUpload(ctx context.Context, client *minio.Client, bucket, lang, 
         content = fmt.Sprintf(`import boto3
 from botocore.client import Config
 
-# Auto-Generated Storage Client
-s3 = boto3.resource('s3',
-    endpoint_url='%s',
-    aws_access_key_id='%s',
-    aws_secret_access_key='%s',
-    config=Config(signature_version='s3v4'),
-    region_name='us-east-1')
+class StorageService:
+    def __init__(self):
+        self.s3 = boto3.client('s3',
+            endpoint_url='%s',
+            aws_access_key_id='%s',
+            aws_secret_access_key='%s',
+            config=Config(signature_version='s3v4'),
+            region_name='us-east-1')
+
+    # 1. Get Presigned Upload URL (Frontend -> MinIO)
+    def get_upload_url(self, bucket, filename):
+        return self.s3.generate_presigned_url('put_object', 
+            Params={'Bucket': bucket, 'Key': filename}, ExpiresIn=3600)
+
+    # 2. Upload File (Backend -> MinIO)
+    def upload_file(self, bucket, filename, file_path):
+        self.s3.upload_file(file_path, bucket, filename)
+
+    # 3. Get Download URL (Public or Presigned)
+    def get_file_url(self, bucket, filename):
+        return self.s3.generate_presigned_url('get_object', 
+            Params={'Bucket': bucket, 'Key': filename}, ExpiresIn=3600)
 
 # Usage
-for bucket in s3.buckets.all():
-    print(bucket.name)
+storage = StorageService()
+print("✅ Storage Service Initialized")
 `, pubUrl, user, pass)
 
     case "go":
         filename = "main.go"
         content = fmt.Sprintf(`package main
 import (
-	"log"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
+    "context"
+    "log"
+    "time"
+    "net/url"
+    "github.com/minio/minio-go/v7"
+    "github.com/minio/minio-go/v7/pkg/credentials"
 )
+
+type StorageService struct {
+    Client *minio.Client
+}
+
+func NewStorage() *StorageService {
+    minioClient, err := minio.New("%s", &minio.Options{
+        Creds:  credentials.NewStaticV4("%s", "%s", ""),
+        Secure: %v,
+    })
+    if err != nil { log.Fatalln(err) }
+    return &StorageService{Client: minioClient}
+}
+
+// 1. Get Presigned Upload URL
+func (s *StorageService) GetUploadUrl(bucket, filename string) (string, error) {
+    expiry := time.Hour * 1
+    return s.Client.PresignedPutObject(context.Background(), bucket, filename, expiry)
+}
+
+// 2. Upload File
+func (s *StorageService) UploadFile(bucket, filename, filepath string) (minio.UploadInfo, error) {
+    return s.Client.FPutObject(context.Background(), bucket, filename, filepath, minio.PutObjectOptions{})
+}
+
+// 3. Get Download URL
+func (s *StorageService) GetFileUrl(bucket, filename string) (string, error) {
+    expiry := time.Hour * 1
+    u, err := s.Client.PresignedGetObject(context.Background(), bucket, filename, expiry, nil)
+    if err != nil { return "", err }
+    return u.String(), nil
+}
+
 func main() {
-	minioClient, err := minio.New("%s", &minio.Options{
-		Creds:  credentials.NewStaticV4("%s", "%s", ""),
-		Secure: %v,
-	})
-	if err != nil { log.Fatalln(err) }
-    log.Println("Connected!")
+    svc := NewStorage()
+    log.Println("✅ Storage Service Initialized")
 }`, endpoint, user, pass, useSSL)
 
     default: // node

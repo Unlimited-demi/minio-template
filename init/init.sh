@@ -65,32 +65,75 @@ if [ -n "$MINIO_BUCKETS" ]; then
       CONTENT="import boto3
 from botocore.client import Config
 
-s3 = boto3.resource('s3',
-    endpoint_url='$SERVER_URL',
-    aws_access_key_id='$MINIO_ROOT_USER',
-    aws_secret_access_key='$MINIO_ROOT_PASSWORD',
-    config=Config(signature_version='s3v4'),
-    region_name='us-east-1')
+class StorageService:
+    def __init__(self):
+        self.s3 = boto3.client('s3',
+            endpoint_url='$SERVER_URL',
+            aws_access_key_id='$MINIO_ROOT_USER',
+            aws_secret_access_key='$MINIO_ROOT_PASSWORD',
+            config=Config(signature_version='s3v4'),
+            region_name='us-east-1')
 
-# Usage
-for bucket in s3.buckets.all():
-    print(bucket.name)"
+    # 1. Get Presigned Upload URL
+    def get_upload_url(self, bucket, filename):
+        return self.s3.generate_presigned_url('put_object', 
+            Params={'Bucket': bucket, 'Key': filename}, ExpiresIn=3600)
+
+    # 2. Upload File
+    def upload_file(self, bucket, filename, file_path):
+        self.s3.upload_file(file_path, bucket, filename)
+
+    # 3. Get Download URL
+    def get_file_url(self, bucket, filename):
+        return self.s3.generate_presigned_url('get_object', 
+            Params={'Bucket': bucket, 'Key': filename}, ExpiresIn=3600)
+
+storage = StorageService()
+print(\"✅ Storage Service Initialized\")"
 
     elif [ "$CLIENT_LANG" = "go" ]; then
       FILE_NAME="main.go"
       CONTENT="package main
 import (
+	\"context\"
 	\"log\"
+	\"time\"
 	\"github.com/minio/minio-go/v7\"
 	\"github.com/minio/minio-go/v7/pkg/credentials\"
 )
-func main() {
+
+type StorageService struct {
+    Client *minio.Client
+}
+
+func NewStorage() *StorageService {
 	minioClient, err := minio.New(\"$CLEAN_URL\", &minio.Options{
 		Creds:  credentials.NewStaticV4(\"$MINIO_ROOT_USER\", \"$MINIO_ROOT_PASSWORD\", \"\"),
 		Secure: $SSL,
 	})
 	if err != nil { log.Fatalln(err) }
-    log.Println(\"Connected!\")
+    return &StorageService{Client: minioClient}
+}
+
+func (s *StorageService) GetUploadUrl(bucket, filename string) (string, error) {
+    expiry := time.Hour * 1
+    return s.Client.PresignedPutObject(context.Background(), bucket, filename, expiry)
+}
+
+func (s *StorageService) UploadFile(bucket, filename, filepath string) (minio.UploadInfo, error) {
+    return s.Client.FPutObject(context.Background(), bucket, filename, filepath, minio.PutObjectOptions{})
+}
+
+func (s *StorageService) GetFileUrl(bucket, filename string) (string, error) {
+    expiry := time.Hour * 1
+    u, err := s.Client.PresignedGetObject(context.Background(), bucket, filename, expiry, nil)
+    if err != nil { return \"\", err }
+    return u.String(), nil
+}
+
+func main() {
+    NewStorage()
+    log.Println(\"✅ Storage Service Initialized\")
 }"
 
     else # node
