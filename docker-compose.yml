@@ -38,13 +38,13 @@ services:
     #   - "9001:9001"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.minio.rule=Host(`minio.yourdomain.com`)" 
+      - "traefik.http.routers.minio.rule=Host(`${MINIO_HOST}`)" 
       - "traefik.http.routers.minio.entrypoints=websecure"
       - "traefik.http.routers.minio.tls.certresolver=myresolver"
       - "traefik.http.services.minio.loadbalancer.server.port=9000"
       - "traefik.http.routers.minio.service=minio"
       # Console Router
-      - "traefik.http.routers.console.rule=Host(`console.yourdomain.com`)"
+      - "traefik.http.routers.console.rule=Host(`${CONSOLE_HOST}`)"
       - "traefik.http.routers.console.entrypoints=websecure"
       - "traefik.http.routers.console.tls.certresolver=myresolver"
       - "traefik.http.services.console.loadbalancer.server.port=9001"
