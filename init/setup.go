@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/url"
 	"strings"
 	"time"
 
@@ -292,31 +291,28 @@ module.exports = new StorageService();`, host, port, useSSL, user, pass)
     if err != nil {
         log.Printf("❌ Failed to upload client code: %v\n", err)
     } else {
-        // Generate a PRESIGNED URL for the client code itself, so the user can download it 
-        // even if the bucket is PRIVATE.
-        expiry := time.Hour * 24 
-        presignedUrl, err := client.PresignedGetObject(ctx, bucket, filename, expiry, nil)
+        // Generate a PRESIGNED URL for the client code itself.
+        // CRITICAL: We must use a client initialized with the PUBLIC URL to ensure
+        // the signature matches the Host header the user will send.
+        
+        signingClient, err := minio.New(endpoint, &minio.Options{
+            Creds:  credentials.NewStaticV4(user, pass, ""),
+            Secure: useSSL,
+        })
         
         var displayUrl string
         if err != nil {
-             log.Printf("⚠️ Could not presign client URL: %v\n", err)
-             displayUrl = fmt.Sprintf("%s/%s/%s", strings.TrimSuffix(pubUrl, "/"), bucket, filename)
+             log.Printf("⚠️ Could not create signing client: %v\n", err)
+             displayUrl = "Error generating link"
         } else {
-             // We need to make sure the presigned URL uses the PUBLIC endpoint, not the internal container one.
-             // MinIO might sign it with the internal IP.
-             // A simple way is to replace the scheme/host in the signed URL with our publicUrl.
-             signedStr := presignedUrl.String()
-             
-             // This is a bit hacky but ensures the user sees the correct public domain
-             // We want to replace everything before the path with pubUrl
-             // e.g. http://172.18.0.3:9000/bucket/file?... -> https://minio.domain.com/bucket/file?...
-             
-             // Parse the signed URL to get the Query Params (Signature)
-             u, _ := url.Parse(signedStr)
-             queryParams := u.RawQuery
-             
-             // Construct the final public URL
-             displayUrl = fmt.Sprintf("%s/%s/%s?%s", strings.TrimSuffix(pubUrl, "/"), bucket, filename, queryParams)
+             expiry := time.Hour * 24 
+             presignedUrl, err := signingClient.PresignedGetObject(ctx, bucket, filename, expiry, nil)
+             if err != nil {
+                 log.Printf("⚠️ Could not presign client URL: %v\n", err)
+                 displayUrl = "Error generating link"
+             } else {
+                 displayUrl = presignedUrl.String()
+             }
         }
 
         fmt.Println("==================================================")
