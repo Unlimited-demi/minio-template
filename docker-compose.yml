@@ -42,11 +42,13 @@ services:
       - "traefik.http.routers.minio.entrypoints=websecure"
       - "traefik.http.routers.minio.tls.certresolver=myresolver"
       - "traefik.http.services.minio.loadbalancer.server.port=9000"
+      - "traefik.http.routers.minio.service=minio"
       # Console Router
       - "traefik.http.routers.console.rule=Host(`console.yourdomain.com`)"
       - "traefik.http.routers.console.entrypoints=websecure"
       - "traefik.http.routers.console.tls.certresolver=myresolver"
       - "traefik.http.services.console.loadbalancer.server.port=9001"
+      - "traefik.http.routers.console.service=console"
 
   # ==========================================
   # 2. SSL SERVICE: Traefik (Profile: ssl)

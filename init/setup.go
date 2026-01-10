@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -298,6 +300,9 @@ module.exports = new StorageService();`, host, port, useSSL, user, pass)
         signingClient, err := minio.New(endpoint, &minio.Options{
             Creds:  credentials.NewStaticV4(user, pass, ""),
             Secure: useSSL,
+            Transport: &http.Transport{
+                TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+            },
         })
         
         var displayUrl string
