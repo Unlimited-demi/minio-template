@@ -300,6 +300,7 @@ module.exports = new StorageService();`, host, port, useSSL, user, pass)
         signingClient, err := minio.New(endpoint, &minio.Options{
             Creds:  credentials.NewStaticV4(user, pass, ""),
             Secure: useSSL,
+            Region: "us-east-1",
             Transport: &http.Transport{
                 TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
             },
