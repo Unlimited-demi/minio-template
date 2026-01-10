@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -290,10 +292,37 @@ module.exports = new StorageService();`, host, port, useSSL, user, pass)
     if err != nil {
         log.Printf("❌ Failed to upload client code: %v\n", err)
     } else {
-        finalUrl := fmt.Sprintf("%s/%s/%s", strings.TrimSuffix(pubUrl, "/"), bucket, filename)
+        // Generate a PRESIGNED URL for the client code itself, so the user can download it 
+        // even if the bucket is PRIVATE.
+        expiry := time.Hour * 24 
+        presignedUrl, err := client.PresignedGetObject(ctx, bucket, filename, expiry, nil)
+        
+        var displayUrl string
+        if err != nil {
+             log.Printf("⚠️ Could not presign client URL: %v\n", err)
+             displayUrl = fmt.Sprintf("%s/%s/%s", strings.TrimSuffix(pubUrl, "/"), bucket, filename)
+        } else {
+             // We need to make sure the presigned URL uses the PUBLIC endpoint, not the internal container one.
+             // MinIO might sign it with the internal IP.
+             // A simple way is to replace the scheme/host in the signed URL with our publicUrl.
+             signedStr := presignedUrl.String()
+             
+             // This is a bit hacky but ensures the user sees the correct public domain
+             // We want to replace everything before the path with pubUrl
+             // e.g. http://172.18.0.3:9000/bucket/file?... -> https://minio.domain.com/bucket/file?...
+             
+             // Parse the signed URL to get the Query Params (Signature)
+             u, _ := url.Parse(signedStr)
+             queryParams := u.RawQuery
+             
+             // Construct the final public URL
+             displayUrl = fmt.Sprintf("%s/%s/%s?%s", strings.TrimSuffix(pubUrl, "/"), bucket, filename, queryParams)
+        }
+
         fmt.Println("==================================================")
         fmt.Println("✅ CLIENT CODE GENERATED & UPLOADED")
-        fmt.Printf("👉 URL: %s\n", finalUrl)
+        fmt.Println("👉 DOWNLOAD URL (Valid for 24h):")
+        fmt.Printf("%s\n", displayUrl)
         fmt.Println("==================================================")
     }
 }
